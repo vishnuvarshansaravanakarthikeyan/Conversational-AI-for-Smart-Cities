@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UrbanMind — Conversational AI for Smart Cities</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Serif+Display:ital@0;1&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --ink:#0a0d12; --paper:#f5f2eb; --lime:#c8f53b; --cyan:#3bdfdd;
+  --muted:#5a6070; --card:#ffffff; --border:rgba(10,13,18,.1);
+  --fs-xl:clamp(2.6rem,7vw,5.5rem); --fs-lg:clamp(1.6rem,4vw,2.8rem);
+  --fs-md:clamp(1rem,2vw,1.25rem); --fs-sm:0.83rem;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-in:cubic-bezier(.7,0,.84,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Serif Display',serif;background:var(--paper);color:var(--ink);overflow-x:hidden;cursor:none}
+a{text-decoration:none;color:inherit}
+
+/* CURSOR */
+#cursor{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference}
+#cursor-dot{width:8px;height:8px;background:var(--lime);border-radius:50%;position:absolute;transform:translate(-50%,-50%)}
+#cursor-ring{width:40px;height:40px;border:2px solid var(--lime);border-radius:50%;position:absolute;transform:translate(-50%,-50%);transition:width .35s var(--ease-out),height .35s var(--ease-out),opacity .3s}
+body.hov #cursor-ring{width:60px;height:60px;opacity:.5}
+
+/* NOISE */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.5}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:var(--ink);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;transition:opacity .7s var(--ease-in),transform .7s var(--ease-in)}
+#loader.gone{opacity:0;transform:translateY(-100%);pointer-events:none}
+.lw{font-size:clamp(2.5rem,8vw,5rem);color:var(--paper);line-height:1;overflow:hidden}
+.lw span{display:inline-block;transform:translateY(110%);animation:slideUp .6s var(--ease-out) forwards}
+.lw:nth-child(2) span{animation-delay:.15s}
+.lb{width:200px;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.lf{height:100%;background:var(--lime);transform:scaleX(0);transform-origin:left;animation:loadBar 1.3s .5s var(--ease-out) forwards}
+@keyframes slideUp{to{transform:translateY(0)}}
+@keyframes loadBar{to{transform:scaleX(1)}}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 4vw;backdrop-filter:blur(20px) saturate(160%);background:rgba(245,242,235,.82);border-bottom:1px solid var(--border);transition:padding .4s var(--ease-out)}
+nav.scrolled{padding:.65rem 4vw}
+.nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.03em;display:flex;align-items:center;gap:.5rem;cursor:pointer}
+.nav-logo span{background:var(--ink);color:var(--lime);padding:.12rem .4rem;border-radius:4px;font-size:.85rem}
+.nav-links{display:flex;gap:2rem;list-style:none;font-family:'Space Mono',monospace;font-size:var(--fs-sm)}
+.nav-links a{position:relative;cursor:pointer}
+.nav-links a::after{content:'';position:absolute;bottom:-3px;left:0;width:0;height:1.5px;background:var(--ink);transition:width .3s var(--ease-out)}
+.nav-links a:hover::after{width:100%}
+.nav-sub-btn{font-family:'Space Mono',monospace;font-size:var(--fs-sm);background:var(--ink);color:var(--lime);padding:.5rem 1.1rem;border-radius:100px;transition:transform .2s,background .2s;cursor:pointer;border:none}
+.nav-sub-btn:hover{background:var(--lime);color:var(--ink);transform:scale(1.04)}
+
+/* HERO */
+#hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:8rem 4vw 4rem;gap:4rem;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 80% 70% at 70% 40%,rgba(200,245,59,.13),transparent 70%),radial-gradient(ellipse 50% 60% at 20% 80%,rgba(59,223,221,.1),transparent 60%)}
+.city-grid{position:absolute;inset:0;z-index:0;opacity:.06;background-image:linear-gradient(var(--ink) 1px,transparent 1px),linear-gradient(90deg,var(--ink) 1px,transparent 1px);background-size:60px 60px;animation:gridDrift 20s linear infinite}
+@keyframes gridDrift{from{background-position:0 0}to{background-position:60px 60px}}
+.hero-text{position:relative;z-index:1}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:.6rem;font-family:'Space Mono',monospace;font-size:var(--fs-sm);background:var(--ink);color:var(--lime);padding:.3rem .8rem;border-radius:100px;margin-bottom:1.6rem;opacity:0;transform:translateY(20px);animation:fadeUp .7s .3s var(--ease-out) forwards}
+.hero-eyebrow::before{content:'';width:7px;height:7px;background:var(--lime);border-radius:50%;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.hero-title{font-size:var(--fs-xl);line-height:1;letter-spacing:-.025em;opacity:0;transform:translateY(30px);animation:fadeUp .9s .45s var(--ease-out) forwards}
+.hero-title em{font-style:italic;color:var(--muted)}
+.hero-title .accent{background:linear-gradient(135deg,var(--lime) 30%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-desc{margin-top:1.4rem;font-size:var(--fs-md);color:var(--muted);max-width:44ch;line-height:1.65;opacity:0;transform:translateY(30px);animation:fadeUp .9s .6s var(--ease-out) forwards}
+.hero-actions{margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;opacity:0;transform:translateY(30px);animation:fadeUp .9s .75s var(--ease-out) forwards}
+.btn-p{font-family:'Space Mono',monospace;font-size:var(--fs-sm);background:var(--ink);color:var(--lime);padding:.8rem 1.8rem;border-radius:100px;transition:transform .25s var(--ease-out),box-shadow .25s;cursor:pointer;border:none}
+.btn-p:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(200,245,59,.3)}
+.btn-g{font-family:'Space Mono',monospace;font-size:var(--fs-sm);border:1.5px solid var(--border);padding:.8rem 1.8rem;border-radius:100px;transition:border-color .2s,transform .25s var(--ease-out);cursor:pointer;background:transparent}
+.btn-g:hover{border-color:var(--ink);transform:translateY(-3px)}
+
+/* HERO VISUAL */
+.hero-visual{position:relative;z-index:1;opacity:0;transform:translateX(40px) scale(.97);animation:fadeRight 1s .5s var(--ease-out) forwards}
+.chat-demo{background:var(--ink);border-radius:24px;padding:1.8rem;box-shadow:0 40px 80px rgba(10,13,18,.18),0 0 0 1px rgba(255,255,255,.06);position:relative;overflow:hidden}
+.chat-demo::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(200,245,59,.22),transparent 70%);pointer-events:none}
+.chat-header{display:flex;align-items:center;gap:.8rem;margin-bottom:1.6rem}
+.chat-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--lime),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:.95rem}
+.chat-name{font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:.88rem}
+.chat-sub{font-family:'Space Mono',monospace;font-size:.68rem;color:rgba(255,255,255,.4)}
+.chat-online{margin-left:auto;display:flex;align-items:center;gap:.4rem;font-family:'Space Mono',monospace;font-size:.68rem;color:var(--lime)}
+.chat-online::before{content:'';width:7px;height:7px;background:var(--lime);border-radius:50%;animation:pulse 2s infinite}
+.chat-messages{display:flex;flex-direction:column;gap:.9rem}
+.msg{max-width:84%;padding:.75rem 1rem;border-radius:14px;font-family:'Space Mono',monospace;font-size:.72rem;line-height:1.55}
+.msg.bot{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);border-radius:4px 14px 14px 14px}
+.msg.user{background:var(--lime);color:var(--ink);align-self:flex-end;border-radius:14px 4px 14px 14px}
+.msg.typing{display:flex;gap:.35rem;padding:.9rem 1rem}
+.msg.typing span{width:8px;height:8px;background:rgba(255,255,255,.4);border-radius:50%;animation:bounce 1.1s ease-in-out infinite}
+.msg.typing span:nth-child(2){animation-delay:.18s}
+.msg.typing span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+.float-tag{position:absolute;font-family:'Space Mono',monospace;font-size:.68rem;background:var(--card);border:1px solid var(--border);padding:.38rem .75rem;border-radius:100px;box-shadow:0 8px 24px rgba(0,0,0,.08);white-space:nowrap;animation:floatY 4s ease-in-out infinite}
+.float-tag:nth-child(2){animation-delay:1.3s}
+.float-tag:nth-child(3){animation-delay:2.6s}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.ft1{top:-16px;right:20px}
+.ft2{bottom:28px;left:-28px}
+.ft3{top:46%;right:-26px}
+
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+@keyframes fadeRight{to{opacity:1;transform:translateX(0) scale(1)}}
+
+/* MARQUEE */
+.marquee-wrap{overflow:hidden;padding:.9rem 0;background:var(--ink);color:var(--lime);border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.marquee-inner{display:flex;gap:3rem;width:max-content;animation:marquee 20s linear infinite;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.08em;text-transform:uppercase}
+.marquee-inner span{display:inline-flex;align-items:center;gap:3rem}
+.marquee-inner span::after{content:'✦';font-size:.65rem}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* SECTION COMMONS */
+.section-lbl{font-family:'Space Mono',monospace;font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:2.5rem;display:flex;align-items:center;gap:1rem}
+.section-lbl::before{content:'';display:block;width:30px;height:1.5px;background:currentColor}
+
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease-out),transform .8s var(--ease-out)}
+.reveal.vis{opacity:1;transform:translateY(0)}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+
+/* ── FEATURED ── */
+#featured{padding:5rem 4vw}
+.featured-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr;grid-template-rows:auto auto;gap:1.5px;background:var(--border);border:1.5px solid var(--border);border-radius:20px;overflow:hidden}
+.card{background:var(--card);padding:2rem;transition:background .25s;cursor:pointer;position:relative;overflow:hidden}
+.card:hover{background:#f9f7f2}
+.card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(200,245,59,.05),transparent);opacity:0;transition:opacity .3s;pointer-events:none}
+.card:hover::after{opacity:1}
+.card-main{grid-row:span 2}
+.card-tag{font-family:'Space Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1rem}
+.card-title{font-size:clamp(1.1rem,2.5vw,1.9rem);line-height:1.15;letter-spacing:-.01em;margin-bottom:.9rem}
+.card-excerpt{font-size:.9rem;color:var(--muted);line-height:1.65}
+.card-meta{margin-top:1.6rem;display:flex;align-items:center;gap:.9rem;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)}
+.card-meta .dot{width:4px;height:4px;background:var(--border);border-radius:50%}
+.card-arrow{margin-left:auto;width:34px;height:34px;border:1.5px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .3s var(--ease-out);font-size:.95rem}
+.card:hover .card-arrow{background:var(--ink);color:var(--lime);border-color:var(--ink);transform:rotate(45deg)}
+.card-img{width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:1.3rem;background:var(--paper)}
+.card-img-inner{width:100%;height:100%;transition:transform .5s var(--ease-out)}
+.card:hover .card-img-inner{transform:scale(1.04)}
+
+/* ── STATS ── */
+#stats{background:var(--ink);color:var(--paper);padding:5rem 4vw;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;position:relative;overflow:hidden}
+#stats::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(200,245,59,.06),transparent)}
+.stat-item{position:relative;z-index:1}
+.stat-num{font-size:clamp(2.4rem,5vw,4.2rem);line-height:1;letter-spacing:-.04em;color:var(--lime)}
+.stat-unit{font-size:.6em;vertical-align:super}
+.stat-lbl{font-family:'Space Mono',monospace;font-size:var(--fs-sm);color:rgba(245,242,235,.5);margin-top:.5rem;line-height:1.5}
+
+/* ── TOPICS ── */
+#topics{padding:5rem 4vw}
+.topics-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1.5rem}
+.topics-title{font-size:var(--fs-lg);letter-spacing:-.02em;max-width:18ch;line-height:1.05}
+.topics-title em{font-style:italic;color:var(--muted)}
+.topics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem}
+.topic-card{border:1.5px solid var(--border);border-radius:16px;padding:1.8rem;transition:border-color .3s,transform .35s var(--ease-out),box-shadow .35s;cursor:pointer;position:relative;overflow:hidden}
+.topic-card::before{content:'';position:absolute;bottom:-60px;right:-60px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,var(--c,rgba(200,245,59,.15)),transparent 70%);transition:transform .5s var(--ease-out),opacity .3s;opacity:0}
+.topic-card:hover{border-color:var(--ink);transform:translateY(-5px);box-shadow:0 20px 48px rgba(10,13,18,.1)}
+.topic-card:hover::before{opacity:1;transform:scale(1.5)}
+.topic-icon{width:46px;height:46px;border-radius:12px;background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1.2rem;border:1px solid var(--border)}
+.topic-name{font-size:1.1rem;margin-bottom:.5rem}
+.topic-desc{font-size:.86rem;color:var(--muted);line-height:1.6}
+.topic-count{margin-top:1rem;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)}
+
+/* ── FULL ARTICLES ── */
+#articles{padding:5rem 4vw;background:var(--ink);color:var(--paper)}
+#articles .section-lbl{color:rgba(245,242,235,.4)}
+#articles .section-lbl::before{background:rgba(245,242,235,.3)}
+.articles-list{display:flex;flex-direction:column;gap:0}
+
+.article-item{border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden}
+.article-header{display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:2rem;padding:1.6rem .5rem;cursor:pointer;transition:background .2s;border-radius:8px}
+.article-header:hover{background:rgba(255,255,255,.04)}
+.art-num{font-family:'Space Mono',monospace;font-size:.72rem;color:rgba(245,242,235,.25);text-align:right}
+.art-title{font-size:clamp(.95rem,2vw,1.3rem);letter-spacing:-.01em}
+.art-meta{font-family:'Space Mono',monospace;font-size:.68rem;color:rgba(245,242,235,.35);margin-top:.35rem}
+.art-right{display:flex;align-items:center;gap:1rem}
+.art-tag{font-family:'Space Mono',monospace;font-size:.68rem;text-transform:uppercase;border:1px solid rgba(255,255,255,.12);padding:.28rem .75rem;border-radius:100px;white-space:nowrap;transition:border-color .2s,color .2s}
+.article-header:hover .art-tag{border-color:var(--lime);color:var(--lime)}
+.art-toggle{width:32px;height:32px;border:1.5px solid rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:background .2s,border-color .2s,transform .4s var(--ease-out);flex-shrink:0}
+.article-item.open .art-toggle{transform:rotate(45deg);background:var(--lime);border-color:var(--lime);color:var(--ink)}
+
+/* Article full content */
+.article-body{max-height:0;overflow:hidden;transition:max-height .7s var(--ease-out),opacity .5s}
+.article-body.open{max-height:3000px;opacity:1}
+.article-body{opacity:0}
+.article-inner{padding:0 .5rem 2.5rem 5.5rem}
+.article-inner h3{font-size:clamp(1rem,2vw,1.3rem);margin:1.8rem 0 .7rem;color:var(--lime)}
+.article-inner p{font-family:'DM Serif Display',serif;font-size:.95rem;color:rgba(245,242,235,.78);line-height:1.8;margin-bottom:1.1rem}
+.article-inner blockquote{border-left:3px solid var(--lime);padding:.6rem 1.2rem;margin:1.5rem 0;background:rgba(200,245,59,.05);border-radius:0 8px 8px 0}
+.article-inner blockquote p{color:var(--lime);font-style:italic;margin:0}
+.article-inner .art-img{width:100%;aspect-ratio:16/7;border-radius:12px;overflow:hidden;margin:1.5rem 0;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center}
+.article-inner .tag-row{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.8rem}
+.article-inner .tag-row span{font-family:'Space Mono',monospace;font-size:.68rem;background:rgba(200,245,59,.12);color:var(--lime);padding:.3rem .75rem;border-radius:100px}
+.art-divider{width:40px;height:2px;background:var(--lime);opacity:.4;margin:1.5rem 0}
+
+/* ── NEWSLETTER ── */
+#newsletter{padding:6rem 4vw;display:flex;align-items:center;justify-content:center}
+.nl-box{max-width:680px;width:100%;text-align:center;position:relative}
+.nl-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:300px;pointer-events:none;background:radial-gradient(ellipse,rgba(200,245,59,.12),transparent 70%)}
+.nl-kicker{font-family:'Space Mono',monospace;font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:1rem}
+.nl-title{font-size:var(--fs-lg);letter-spacing:-.02em;margin-bottom:.9rem;line-height:1.05}
+.nl-sub{font-size:.93rem;color:var(--muted);margin-bottom:2.2rem;line-height:1.65}
+.nl-form{display:flex;max-width:430px;margin:0 auto;border:1.5px solid var(--border);border-radius:100px;overflow:hidden;background:var(--card);transition:border-color .2s,box-shadow .2s}
+.nl-form:focus-within{border-color:var(--ink);box-shadow:0 0 0 4px rgba(200,245,59,.18)}
+.nl-input{flex:1;border:none;outline:none;padding:.8rem 1.3rem;font-family:'Space Mono',monospace;font-size:.8rem;background:transparent;color:var(--ink)}
+.nl-input::placeholder{color:rgba(10,13,18,.35)}
+.nl-btn{border:none;cursor:pointer;padding:.65rem 1.3rem;background:var(--ink);color:var(--lime);font-family:'Space Mono',monospace;font-size:.8rem;border-radius:100px;margin:3px;transition:background .2s,transform .2s}
+.nl-btn:hover{background:#1f2430;transform:scale(1.04)}
+
+/* ── FOOTER ── */
+footer{background:var(--ink);color:rgba(245,242,235,.4);padding:2.5rem 4vw;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;font-family:'Space Mono',monospace;font-size:.72rem}
+.foot-logo{color:var(--paper);font-family:'Syne',sans-serif;font-weight:800;font-size:1rem}
+.foot-links{display:flex;gap:1.8rem}
+.foot-links span{cursor:pointer;transition:color .2s}
+.foot-links span:hover{color:var(--lime)}
+
+/* ── ABOUT / SIDEBAR ── */
+#about{padding:5rem 4vw;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center}
+.about-text h2{font-size:var(--fs-lg);letter-spacing:-.02em;line-height:1.1;margin-bottom:1.2rem}
+.about-text h2 em{font-style:italic;color:var(--muted)}
+.about-text p{font-size:.95rem;color:var(--muted);line-height:1.8;margin-bottom:1rem}
+.about-visual{background:var(--ink);border-radius:20px;padding:2.5rem;color:var(--paper)}
+.about-visual h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:var(--lime);margin-bottom:1.5rem}
+.team-item{display:flex;align-items:center;gap:1rem;padding:.9rem 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.team-item:last-child{border-bottom:none}
+.team-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.team-name{font-family:'Syne',sans-serif;font-weight:600;font-size:.9rem}
+.team-role{font-family:'Space Mono',monospace;font-size:.68rem;color:rgba(245,242,235,.45);margin-top:.2rem}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  #hero{grid-template-columns:1fr;padding-top:7rem}
+  .hero-visual{order:-1}
+  .featured-grid{grid-template-columns:1fr 1fr}
+  .card-main{grid-column:span 2}
+  #stats{grid-template-columns:repeat(2,1fr)}
+  .topics-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  #about{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .featured-grid{grid-template-columns:1fr}
+  .card-main{grid-column:span 1}
+  #stats{grid-template-columns:1fr 1fr}
+  .topics-grid{grid-template-columns:1fr}
+  .article-header{grid-template-columns:44px 1fr auto}
+  .article-inner{padding:0 .5rem 2rem 3rem}
+  .art-tag{display:none}
+  footer{flex-direction:column}
+  #about{gap:2.5rem}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="lw"><span>Urban</span></div>
+  <div class="lw"><span>Mind</span></div>
+  <div class="lb"><div class="lf"></div></div>
+</div>
+
+<!-- CURSOR -->
+<div id="cursor"><div id="cursor-dot"></div><div id="cursor-ring"></div></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo" onclick="scrollTo({top:0,behavior:'smooth'})"><span>UM</span>UrbanMind</div>
+  <ul class="nav-links">
+    <li><a onclick="scrollSec('featured')">Featured</a></li>
+    <li><a onclick="scrollSec('topics')">Topics</a></li>
+    <li><a onclick="scrollSec('articles')">Articles</a></li>
+    <li><a onclick="scrollSec('about')">About</a></li>
+    <li><a onclick="scrollSec('newsletter')">Newsletter</a></li>
+  </ul>
+  <button class="nav-sub-btn" onclick="scrollSec('newsletter')">Subscribe →</button>
+</nav>
+
+<!-- ═══════════════════════ HERO ════════════════════════════ -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="city-grid"></div>
+  <div class="hero-text">
+    <div class="hero-eyebrow">Est. 2024 · Smart City Intelligence</div>
+    <h1 class="hero-title">The City<br/><em>Learns to</em><br/><span class="accent">Speak</span></h1>
+    <p class="hero-desc">Exploring how conversational AI is reshaping urban infrastructure, citizen services, and the future of human-city interaction.</p>
+    <div class="hero-actions">
+      <button class="btn-p" onclick="scrollSec('featured')">Explore Stories →</button>
+      <button class="btn-g" onclick="scrollSec('topics')">Browse Topics</button>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div style="position:relative">
+      <div class="float-tag ft1">🏙️ Urban Intelligence</div>
+      <div class="float-tag ft2">💬 NLP Infrastructure</div>
+      <div class="float-tag ft3">⚡ Real-time AI</div>
+      <div class="chat-demo">
+        <div class="chat-header">
+          <div class="chat-av">🤖</div>
+          <div><div class="chat-name">CityMind AI</div><div class="chat-sub">Municipal Assistant · v2.4</div></div>
+          <div class="chat-online">Online</div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg bot" style="opacity:0;animation:fadeUp .5s .2s forwards">Good morning! Traffic on Highway 7 is moderate. Air quality: 42 (Good). How can I help?</div>
+          <div class="msg user" style="opacity:0;animation:fadeUp .5s .5s forwards">Renew my parking permit for Zone C.</div>
+          <div class="msg bot" style="opacity:0;animation:fadeUp .5s .8s forwards">Found permit #PCN-4821. Renewal 12 months = $48. Confirm?</div>
+          <div class="msg typing" id="typingInd" style="opacity:0;animation:fadeUp .5s 1.1s forwards"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    <span>Smart Cities</span><span>Conversational AI</span><span>Urban Intelligence</span><span>NLP Infrastructure</span><span>Citizen Services</span><span>Digital Twins</span><span>IoT Integration</span><span>Public Safety AI</span><span>Smart Mobility</span>
+    <span>Smart Cities</span><span>Conversational AI</span><span>Urban Intelligence</span><span>NLP Infrastructure</span><span>Citizen Services</span><span>Digital Twins</span><span>IoT Integration</span><span>Public Safety AI</span><span>Smart Mobility</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════ FEATURED ═══════════════════════ -->
+<section id="featured">
+  <div class="section-lbl reveal">Featured Stories</div>
+  <div class="featured-grid reveal">
+
+    <!-- MAIN CARD — clicking expands inline -->
+    <div class="card card-main" onclick="scrollSec('art-1')">
+      <div class="card-img"><div class="card-img-inner">
+        <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+          <defs><linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a0d12"/><stop offset="100%" stop-color="#1a2040"/></linearGradient></defs>
+          <rect width="600" height="280" fill="url(#sky1)"/>
+          <rect x="20" y="130" width="45" height="150" fill="#1e2540" rx="2"/><rect x="30" y="90" width="25" height="40" fill="#1e2540" rx="1"/>
+          <rect x="75" y="100" width="60" height="180" fill="#252d4a" rx="2"/><rect x="145" y="60" width="50" height="220" fill="#1e2540" rx="2"/>
+          <rect x="205" y="110" width="40" height="170" fill="#2a3355" rx="2"/><rect x="255" y="80" width="70" height="200" fill="#1e2540" rx="2"/>
+          <rect x="335" y="40" width="55" height="240" fill="#252d4a" rx="2"/><rect x="400" y="95" width="65" height="185" fill="#1e2540" rx="2"/>
+          <rect x="475" y="70" width="45" height="210" fill="#2a3355" rx="2"/><rect x="530" y="120" width="70" height="160" fill="#1e2540" rx="2"/>
+          <g fill="#c8f53b" opacity=".7">
+            <rect x="33" y="100" width="5" height="5" rx="1"/><rect x="42" y="100" width="5" height="5" rx="1"/><rect x="33" y="112" width="5" height="5" rx="1"/>
+            <rect x="80" y="110" width="5" height="5" rx="1"/><rect x="92" y="110" width="5" height="5" rx="1"/><rect x="104" y="110" width="5" height="5" rx="1"/>
+            <rect x="150" y="75" width="5" height="5" rx="1"/><rect x="162" y="75" width="5" height="5" rx="1"/><rect x="174" y="75" width="5" height="5" rx="1"/>
+            <rect x="260" y="90" width="5" height="5" rx="1"/><rect x="274" y="90" width="5" height="5" rx="1"/><rect x="340" y="55" width="5" height="5" rx="1"/>
+            <rect x="354" y="55" width="5" height="5" rx="1"/><rect x="480" y="80" width="5" height="5" rx="1"/><rect x="492" y="80" width="5" height="5" rx="1"/>
+          </g>
+          <g fill="#3bdfdd" opacity=".5"><rect x="104" y="124" width="5" height="5" rx="1"/><rect x="174" y="89" width="5" height="5" rx="1"/><rect x="288" y="104" width="5" height="5" rx="1"/><rect x="492" y="94" width="5" height="5" rx="1"/></g>
+          <rect x="0" y="270" width="600" height="10" fill="#0f1520"/>
+          <g fill="none" stroke="#c8f53b" stroke-width="1" opacity=".4"><path d="M340 40 Q360 15 380 40"/><path d="M325 40 Q360 0 395 40"/></g>
+        </svg>
+      </div></div>
+      <div class="card-tag">Cover Story · Jun 2025</div>
+      <h2 class="card-title">How LLMs Are Becoming the New 311: Real-Time City Service Through Natural Language</h2>
+      <p class="card-excerpt">Large language models are quietly replacing traditional hotlines and portals, offering citizens a conversational interface to report potholes, pay fines, and access municipal records — 24/7.</p>
+      <div class="card-meta"><span>Aisha Petrov</span><span class="dot"></span><span>12 min read</span><div class="card-arrow">↓</div></div>
+    </div>
+
+    <div class="card" onclick="scrollSec('art-2')">
+      <div class="card-tag">Infrastructure · May 2025</div>
+      <h3 class="card-title" style="font-size:1.12rem">Digital Twins & Dialogue: When the City Model Talks Back</h3>
+      <p class="card-excerpt" style="font-size:.84rem">Sensor-rich digital twins can now interpret and respond to queries from planners, engineers, and citizens alike.</p>
+      <div class="card-meta"><span>Marco Fuentes</span><div class="card-arrow">↓</div></div>
+    </div>
+    <div class="card" onclick="scrollSec('art-3')">
+      <div class="card-tag">Safety · May 2025</div>
+      <h3 class="card-title" style="font-size:1.12rem">Voice-Activated Emergency Response: Saving Seconds That Save Lives</h3>
+      <p class="card-excerpt" style="font-size:.84rem">Municipalities deploying voice AI in emergency dispatch see faster response times and reduced operator fatigue.</p>
+      <div class="card-meta"><span>Dr. Lin Okafor</span><div class="card-arrow">↓</div></div>
+    </div>
+    <div class="card" onclick="scrollSec('art-4')">
+      <div class="card-tag">Mobility · Apr 2025</div>
+      <h3 class="card-title" style="font-size:1.12rem">Ask the Bus: Conversational AI Transforms Public Transit</h3>
+      <p class="card-excerpt" style="font-size:.84rem">Multilingual chatbots integrated with live feeds are reducing missed connections and boosting ridership.</p>
+      <div class="card-meta"><span>Yuki Andersen</span><div class="card-arrow">↓</div></div>
+    </div>
+    <div class="card" onclick="scrollSec('art-5')">
+      <div class="card-tag">Policy · Apr 2025</div>
+      <h3 class="card-title" style="font-size:1.12rem">Privacy in the Talking City: What Data Does Your AI Mayor Collect?</h3>
+      <p class="card-excerpt" style="font-size:.84rem">As conversational interfaces proliferate in civic tech, regulators push back on ambient data harvesting.</p>
+      <div class="card-meta"><span>Ravi Sørensen</span><div class="card-arrow">↓</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats">
+  <div class="stat-item reveal"><div class="stat-num"><span class="count" data-t="340">0</span><span class="stat-unit">+</span></div><div class="stat-lbl">Cities worldwide with deployed conversational AI services</div></div>
+  <div class="stat-item reveal d1"><div class="stat-num"><span class="count" data-t="78">0</span><span class="stat-unit">%</span></div><div class="stat-lbl">Citizen satisfaction improvement in AI-assisted municipalities</div></div>
+  <div class="stat-item reveal d2"><div class="stat-num"><span class="count" data-t="2.4" data-f="1">0</span><span class="stat-unit">B</span></div><div class="stat-lbl">Annual market for smart city conversational AI by 2027</div></div>
+  <div class="stat-item reveal d3"><div class="stat-num"><span class="count" data-t="62">0</span><span class="stat-unit">%</span></div><div class="stat-lbl">Reduction in call-center volume after AI assistant deployment</div></div>
+</section>
+
+<!-- ═══════════════════════ TOPICS ══════════════════════════ -->
+<section id="topics">
+  <div class="topics-hdr">
+    <h2 class="topics-title reveal">Explore <em>by</em> Topic</h2>
+  </div>
+  <div class="topics-grid">
+    <div class="topic-card reveal" style="--c:rgba(200,245,59,.15)" onclick="scrollSec('art-4')"><div class="topic-icon">🚦</div><div class="topic-name">Smart Mobility</div><div class="topic-desc">AI-driven traffic systems, conversational transit assistants, and autonomous vehicle communication protocols.</div><div class="topic-count">24 articles</div></div>
+    <div class="topic-card reveal d1" style="--c:rgba(59,223,221,.15)" onclick="scrollSec('art-1')"><div class="topic-icon">🏛️</div><div class="topic-name">Civic AI</div><div class="topic-desc">Government chatbots, e-participation platforms, and AI-mediated public consultation systems.</div><div class="topic-count">31 articles</div></div>
+    <div class="topic-card reveal d2" style="--c:rgba(200,245,59,.15)" onclick="scrollSec('art-5')"><div class="topic-icon">🔐</div><div class="topic-name">Privacy & Ethics</div><div class="topic-desc">Data sovereignty, algorithmic bias in urban AI, and the ethics of pervasive city intelligence networks.</div><div class="topic-count">18 articles</div></div>
+    <div class="topic-card reveal d1" style="--c:rgba(59,223,221,.15)" onclick="scrollSec('art-6')"><div class="topic-icon">🌿</div><div class="topic-name">Climate & Energy</div><div class="topic-desc">Conversational interfaces for smart grids, energy optimization dashboards, and sustainability reporting.</div><div class="topic-count">15 articles</div></div>
+    <div class="topic-card reveal d2" style="--c:rgba(200,245,59,.15)" onclick="scrollSec('art-3')"><div class="topic-icon">🏥</div><div class="topic-name">Health & Safety</div><div class="topic-desc">Emergency dispatch AI, public health chatbots, and real-time incident response coordination systems.</div><div class="topic-count">22 articles</div></div>
+    <div class="topic-card reveal d3" style="--c:rgba(59,223,221,.15)" onclick="scrollSec('art-7')"><div class="topic-icon">📡</div><div class="topic-name">IoT & NLP</div><div class="topic-desc">Bridging the sensor web with natural language: making raw urban data conversationally accessible.</div><div class="topic-count">19 articles</div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ ARTICLES (full content, expandable) ══════════════════════ -->
+<section id="articles">
+  <div class="section-lbl reveal">All Articles</div>
+  <div class="articles-list">
+
+    <!-- ARTICLE 1 -->
+    <div class="article-item" id="art-1">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">01</div>
+        <div><div class="art-title">How LLMs Are Becoming the New 311: Real-Time City Service Through Natural Language</div><div class="art-meta">Aisha Petrov · Jun 18, 2025 · 12 min read</div></div>
+        <div class="art-right"><div class="art-tag">Civic AI</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>For decades, the 311 hotline was the backbone of non-emergency municipal communication. Citizens called to report broken streetlights, request garbage collection, complain about noise, or navigate Byzantine bureaucracy. It worked, but imperfectly. Long hold times, inconsistent responses, and a workforce stretched across thousands of daily inquiries left many residents frustrated.</p>
+          <p>Today, a quiet revolution is underway. Cities from New York to Singapore are deploying large language model-powered assistants that handle the full spectrum of civic inquiries — in real time, in multiple languages, at any hour of the day. These systems do not replace human workers entirely; they triage, route, and resolve the enormous volume of routine requests that once clogged call queues.</p>
+          <h3>The Architecture of a City Brain</h3>
+          <p>A modern municipal LLM system is not a single model sitting in isolation. It is a layered pipeline. At its front end, a fine-tuned conversational model interprets citizen intent — parsing natural language into structured action requests. Behind it, retrieval-augmented generation (RAG) systems pull live data from city databases: permit records, service schedules, zoning maps, and utility outage reports. The result is a system that can say: "Your trash collection for Maple Street is scheduled for Thursday, and the current delay due to the snowstorm extends that to Friday."</p>
+          <blockquote><p>"We went from 4,200 daily calls to under 800 in six months. The AI resolves everything routine. Humans handle the complex and the human." — Director of Digital Services, City of Denver</p></blockquote>
+          <h3>Multilingual by Default</h3>
+          <p>One underrated advantage of LLM-based civic services is their native multilingual capability. Legacy 311 systems required separate Spanish, Mandarin, or Somali language lines staffed by human operators — expensive, slow, and often unavailable overnight. Modern city AI systems trained on multilingual corpora respond fluently across dozens of languages without additional staffing. For immigrant-heavy cities, this is transformative.</p>
+          <h3>The Trust Problem</h3>
+          <p>Not all is smooth. Citizens accustomed to talking with humans express unease when they learn a chatbot handled their complaint. Concerns about data privacy — what is recorded, how long it is stored, who can access the transcript — are legitimate and growing. Several cities have responded by publishing "AI transparency reports" detailing model behavior, training data sources, and escalation pathways. Advocates argue this is the minimum acceptable standard.</p>
+          <div class="art-divider"></div>
+          <h3>What's Next</h3>
+          <p>The next frontier is proactive civic AI: systems that do not wait for citizens to call, but instead reach out. Imagine a city assistant that texts you when your parking permit is about to expire, reminds you of the noise ordinance before your weekend party, or alerts your neighborhood when air quality dips below safe thresholds. Several pilot programs are already underway in Amsterdam and Seoul. The city that once only responded is learning, slowly, to speak first.</p>
+          <div class="tag-row"><span>LLM</span><span>311 Services</span><span>Civic AI</span><span>Multilingual</span><span>RAG</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 2 -->
+    <div class="article-item" id="art-2">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">02</div>
+        <div><div class="art-title">Digital Twins & Dialogue: When the City Model Talks Back</div><div class="art-meta">Marco Fuentes · Jun 12, 2025 · 9 min read</div></div>
+        <div class="art-right"><div class="art-tag">Infrastructure</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>A digital twin is a living, breathing replica of a city — ingesting data from thousands of sensors, cameras, and connected infrastructure nodes to simulate the urban environment in real time. Until recently, these systems were the domain of engineers and urban planners who could interpret complex dashboards and 3D visualizations. Now, conversational interfaces are democratizing access.</p>
+          <h3>Querying a City in Plain English</h3>
+          <p>Helsinki's Urban Digital Twin project introduced a natural language query layer in early 2025. City planners can now ask questions like: "What is the projected pedestrian load on the Kallio bridge if the tram line is suspended for maintenance next Tuesday?" The system cross-references historical foot traffic data, public transit schedules, weather forecasts, and event calendars to generate a probabilistic answer — in seconds, without a single line of SQL.</p>
+          <blockquote><p>"The barrier was never the data. It was translation. Now anyone on the team, regardless of technical background, can interrogate the twin." — Helsinki Chief Urban Planner</p></blockquote>
+          <h3>Real-Time Stress Testing</h3>
+          <p>Emergency planners use conversational digital twins to run scenario simulations. "What happens to evacuation routes if the eastern flood barrier fails during a Category 2 storm?" The twin runs the simulation, generates a heat map, and responds with a natural language summary of vulnerable zones and recommended counter-measures. This compresses hours of specialist analysis into a three-minute conversation.</p>
+          <h3>Citizen-Facing Twins</h3>
+          <p>Some cities are extending digital twin access to citizens themselves. Rotterdam's "City Explorer" lets residents ask the city's twin about construction impacts on their commute, air quality projections near their home, or the noise levels expected near a proposed development site. The interface surfaces raw city data in digestible, human-readable form — a fundamentally new model of urban transparency.</p>
+          <div class="tag-row"><span>Digital Twins</span><span>Urban Planning</span><span>NLP</span><span>Simulation</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 3 -->
+    <div class="article-item" id="art-3">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">03</div>
+        <div><div class="art-title">Voice-Activated Emergency Response: Saving Seconds That Save Lives</div><div class="art-meta">Dr. Lin Okafor · Jun 5, 2025 · 8 min read</div></div>
+        <div class="art-right"><div class="art-tag">Health & Safety</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>In emergency dispatch, every second matters. The 2024 average call-to-dispatch time in US cities was 87 seconds — a figure that emergency medicine specialists have long argued is too high. The bottleneck is not the dispatcher's skill; it is the manual data entry, protocol lookup, and routing decisions that consume those critical moments.</p>
+          <h3>AI as a Dispatch Co-Pilot</h3>
+          <p>Phoenix, Arizona, introduced an AI co-pilot system for its 911 dispatch center in March 2025. The system listens to incoming calls in real time, automatically populates the incident record, cross-references the caller's address with hospital proximity and unit availability, and surfaces the recommended protocol — all while the dispatcher focuses on the caller. Dispatchers confirm or override the AI's suggestions; they are never removed from the loop.</p>
+          <blockquote><p>"It's like having a second dispatcher who never panics, never forgets a protocol, and can search every database simultaneously." — Phoenix 911 Operations Manager</p></blockquote>
+          <h3>Natural Language for Field Units</h3>
+          <p>The voice AI layer extends to field units as well. Paramedics can now query hospital systems verbally while their hands are occupied with patient care. "What is the current wait time at St. Mary's trauma bay?" or "What is the standard protocol for pediatric opioid overdose?" returns an immediate spoken response, sourced from live hospital data and clinical guidelines.</p>
+          <h3>Challenges in High-Stress Environments</h3>
+          <p>Deploying voice AI in emergency settings presents unique challenges. Background noise, caller distress, non-standard speech patterns, and the irreversible consequences of misinterpretation demand extraordinary accuracy. Current systems run at 97.3% intent accuracy under stress conditions — impressive, but not yet at the level where the human co-pilot model can be relaxed. The consensus among emergency management professionals is that full autonomy in dispatch remains a decade away. For now, augmentation is the goal.</p>
+          <div class="tag-row"><span>Voice AI</span><span>Emergency Dispatch</span><span>Public Safety</span><span>Real-time NLP</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 4 -->
+    <div class="article-item" id="art-4">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">04</div>
+        <div><div class="art-title">Ask the Bus: Conversational AI Transforms Public Transit</div><div class="art-meta">Yuki Andersen · May 29, 2025 · 7 min read</div></div>
+        <div class="art-right"><div class="art-tag">Mobility</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>Public transit authorities have long struggled with the "information gap" — the frustrating moment when a passenger misses a connection because the real-time data existed somewhere in a server but never reached them in a useful form. Conversational AI is closing that gap, not through apps and dashboards, but through something far more intuitive: conversation.</p>
+          <h3>Transit Chatbots That Actually Work</h3>
+          <p>The Taipei Metro deployed a conversational assistant in January 2025 that integrates with its GTFS-Realtime feed. Passengers text or voice-query the system in Mandarin, Taiwanese Hokkien, English, or Japanese: "I'm at Daan station and need to reach Taipei Main before 3 PM — is the red line on schedule?" The bot returns not just a yes/no answer but the current delay, the optimal line change, and an estimated arrival time accurate to the minute.</p>
+          <blockquote><p>"Ridership among elderly users increased 18% in the first quarter. The key was voice — they could just ask, like talking to a person." — Taipei Metro Digital Services Lead</p></blockquote>
+          <h3>Accessibility as a Byproduct</h3>
+          <p>The accessibility implications are profound. Screen readers, high-contrast modes, and accessible apps remain under-utilized because they require awareness and configuration. A voice-first transit assistant requires nothing but a phone call or a smart speaker query. For elderly passengers, non-native speakers, and those with visual impairments, this is the most usable transit interface ever built.</p>
+          <h3>The Network Effect of Conversational Data</h3>
+          <p>Every query is a data point. Transit authorities are mining conversational logs (anonymized) to understand where information gaps cluster: which routes generate the most confusion, which stations see spikes in "Is the elevator working?" queries, and which time windows produce peak uncertainty. This feedback loop is reshaping how transit agencies communicate proactively — sending alerts before passengers even think to ask.</p>
+          <div class="tag-row"><span>Public Transit</span><span>GTFS</span><span>Accessibility</span><span>Voice AI</span><span>Mobility</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 5 -->
+    <div class="article-item" id="art-5">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">05</div>
+        <div><div class="art-title">Privacy in the Talking City: What Data Does Your AI Mayor Collect?</div><div class="art-meta">Ravi Sørensen · May 22, 2025 · 10 min read</div></div>
+        <div class="art-right"><div class="art-tag">Privacy & Ethics</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>When a citizen asks a city chatbot to renew a parking permit, report a pothole, or inquire about a noise complaint, they are doing something that previous generations never did: speaking directly, personally, and in natural language, to their municipal government. The conversational turn is logged. The intent is recorded. And in many cities, the data governance around those logs is alarmingly thin.</p>
+          <h3>What Gets Collected</h3>
+          <p>Municipal AI systems typically log the full text of each conversation, the timestamp, the device type, the IP address, and in voice systems, the audio recording. Some systems link queries to user accounts, creating a longitudinal profile of a citizen's interactions with their city. Others use "session-based" anonymization that is, in practice, easily re-identified through cross-referencing.</p>
+          <blockquote><p>"You can infer a great deal about a person's life — their health issues, their financial stress, their domestic situation — from what they ask their city." — Data privacy researcher, University of Amsterdam</p></blockquote>
+          <h3>The Regulatory Patchwork</h3>
+          <p>In the European Union, GDPR provides a baseline framework, but municipal AI deployments have exposed significant gaps — particularly around the right to explanation when AI decisions affect service access, and data minimization principles that are frequently interpreted loosely by procurement teams eager to maximize model performance. In the US, the picture is more fragmented; city-level AI ordinances in Seattle, Portland, and New York vary significantly in scope and enforceability.</p>
+          <h3>Building Trust Through Transparency</h3>
+          <p>A growing number of cities are responding to criticism by publishing "algorithmic accountability reports" — documents that describe what AI systems are deployed, what data they process, how long records are retained, and what human oversight exists. Amsterdam's 2024 report was widely praised as a model; its candid acknowledgment of edge-case failures and bias risks set a new standard for civic honesty about AI limitations. The lesson: transparency, even about imperfection, builds more public trust than silence.</p>
+          <div class="tag-row"><span>Privacy</span><span>GDPR</span><span>Data Ethics</span><span>Regulation</span><span>Civic AI</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 6 -->
+    <div class="article-item" id="art-6">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">06</div>
+        <div><div class="art-title">The Talking Grid: Conversational AI for Urban Energy Management</div><div class="art-meta">Dr. Priya Mehta · May 14, 2025 · 11 min read</div></div>
+        <div class="art-right"><div class="art-tag">Climate & Energy</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>The modern urban energy grid is a computational object as much as a physical one. Thousands of sensors feed data streams into grid management systems that balance supply and demand across distributed renewable sources, legacy infrastructure, and a rapidly growing inventory of EV chargers and home batteries. Managing this complexity has historically required specialist engineers. Conversational AI is changing the access model.</p>
+          <h3>Grid Operators Talk to the Grid</h3>
+          <p>Enel, the Italian energy giant, has deployed a conversational interface for its grid operations teams across Milan and Rome. Operators can now ask: "What is the projected demand spike on the northern corridor at 18:00 given tonight's football match at the San Siro?" The system integrates weather data, event calendars, historical demand patterns, and real-time sensor readings to generate a probabilistic load forecast and recommended pre-emptive balancing actions.</p>
+          <blockquote><p>"The interface removed the expertise bottleneck. Junior operators can now run scenarios that used to require a senior analyst and half a day." — Enel Grid Innovation Lead</p></blockquote>
+          <h3>Citizens and Their Energy AI</h3>
+          <p>The residential layer is equally compelling. Several European utilities now offer home energy assistants that learn household consumption patterns and engage in natural language conversations: "You left the heating on at Zone 2 — shall I reduce it? Your solar generation is exceeding consumption; I can divert the surplus to charge your car." This is not science fiction. It is live in over 40,000 homes in the Netherlands today.</p>
+          <h3>Demand Response at Conversational Scale</h3>
+          <p>The most transformative application is large-scale demand response. When grid stress events occur — sudden drops in renewable generation, unexpected demand spikes — utilities traditionally send blunt signals: broad curtailment notices or price spikes. With conversational AI mediating the relationship, the grid can negotiate individually with thousands of households and commercial premises simultaneously: personalized, contextual, real-time energy conversations at urban scale.</p>
+          <div class="tag-row"><span>Smart Grid</span><span>Energy AI</span><span>Demand Response</span><span>Climate</span><span>Renewable</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 7 -->
+    <div class="article-item" id="art-7">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">07</div>
+        <div><div class="art-title">Sensor to Sentence: Making IoT Data Conversationally Accessible</div><div class="art-meta">Dr. Kenji Walsh · May 7, 2025 · 9 min read</div></div>
+        <div class="art-right"><div class="art-tag">IoT & NLP</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>A modern smart city generates extraordinary volumes of sensor data: air quality readings, pedestrian counts, traffic flow measurements, noise levels, flood sensor pings, and building energy consumption metrics — all streaming continuously. This data has historically been accessible only to data engineers who could query databases and interpret raw time-series outputs. The democratization of that data through natural language interfaces represents one of the most consequential developments in urban technology.</p>
+          <h3>The NLP-IoT Bridge</h3>
+          <p>Building the bridge between raw sensor data and natural language is technically non-trivial. The pipeline typically involves: sensor data ingestion into a time-series database, a semantic layer that maps plain English concepts to database schemas, a query generation model that translates natural language questions into structured queries, and a response generation layer that synthesizes the results into readable answers with appropriate uncertainty expressions.</p>
+          <blockquote><p>"The hardest part isn't the AI — it's the semantic modeling. Teaching a system what 'busy' means for a street corner requires deep domain knowledge." — Senior engineer, Barcelona Smart City Lab</p></blockquote>
+          <h3>Barcelona's Open Sensor Interface</h3>
+          <p>Barcelona's Sentilo platform, one of the world's most extensive urban IoT deployments, launched a public conversational interface in late 2024. Any citizen can query the city's 20,000+ sensor network in plain Spanish or Catalan: "How has the air quality on Las Ramblas changed over the past week?" or "Which neighborhoods have the highest noise levels on weekend evenings?" The responses draw on live and historical sensor data, visualized and narrated in plain language.</p>
+          <h3>The Reliability Challenge</h3>
+          <p>Sensor data is messy. Devices fail, calibration drifts, network outages create gaps. Conversational systems must gracefully handle these imperfections — communicating uncertainty, flagging data quality issues, and avoiding false precision. Systems that present unreliable data with confident natural language can erode public trust in both the technology and the city it represents. Robust uncertainty quantification is not just a technical nicety; it is an ethical requirement.</p>
+          <div class="tag-row"><span>IoT</span><span>Sensor Networks</span><span>NLP</span><span>Data Access</span><span>Barcelona</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLE 8 -->
+    <div class="article-item" id="art-8">
+      <div class="article-header" onclick="toggleArt(this)">
+        <div class="art-num">08</div>
+        <div><div class="art-title">Multilingual Kiosks: Breaking Language Barriers in City Services</div><div class="art-meta">Sofia Nakamura · Apr 30, 2025 · 8 min read</div></div>
+        <div class="art-right"><div class="art-tag">Inclusion</div><div class="art-toggle">+</div></div>
+      </div>
+      <div class="article-body">
+        <div class="article-inner">
+          <p>Language barriers in city services are not merely an inconvenience — they are a civic equity crisis. Immigrants and non-native speakers are systematically less able to access the services they pay for through taxes: permit applications, social support programs, housing assistance, public health information. The traditional solution — human interpreters — is expensive, slow, and inconsistently available.</p>
+          <h3>The Kiosk Revolution</h3>
+          <p>Toronto deployed its first multilingual AI kiosks in six community centres in January 2025, offering conversational service in 47 languages. The kiosks handle a range of tasks: explaining benefit programs, initiating permit applications, booking appointments with city services, and answering questions about local bylaws — entirely in the visitor's language, with no interpreter required. Early data shows a 340% increase in service uptake among recently arrived immigrant communities compared with the equivalent period in 2024.</p>
+          <blockquote><p>"A woman came in last week, first time in a government building since arriving. She spoke to the kiosk in Tigrinya and walked out with her library card, her child enrolled in a school program, and an appointment booked at the health centre. In thirty minutes." — Community Centre Manager, Toronto</p></blockquote>
+          <h3>Beyond Translation: Cultural Context</h3>
+          <p>The best multilingual city AI systems do more than translate. They adapt register, cultural framing, and interaction style to the linguistic community. A system optimized for formal written Spanish performs poorly with speakers of Dominican vernacular Spanish. Models fine-tuned on community-specific corpora show significantly higher task completion rates and satisfaction scores, particularly for first-generation immigrants navigating unfamiliar bureaucratic systems.</p>
+          <div class="tag-row"><span>Multilingual</span><span>Inclusion</span><span>Accessibility</span><span>Immigration</span><span>Kiosk</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /articles-list -->
+</section>
+
+<!-- ═══════════════════════ ABOUT ══════════════════════════ -->
+<section id="about">
+  <div class="about-text reveal">
+    <h2><em>About</em> UrbanMind</h2>
+    <p>UrbanMind is an independent publication dedicated to the intersection of conversational AI and urban systems. We cover the technology, the people building it, the cities deploying it, and the citizens living with it.</p>
+    <p>Founded in 2024, UrbanMind publishes original reporting, deep technical analysis, and policy commentary. Our contributors are urban technologists, AI researchers, city planners, and civic advocates.</p>
+    <p>We are editorially independent and accept no advertising from technology vendors. Our work is supported by reader subscriptions and research partnerships with universities and civic institutions.</p>
+  </div>
+  <div class="about-visual reveal d1">
+    <h3>Our Contributors</h3>
+    <div class="team-item"><div class="team-av" style="background:linear-gradient(135deg,#c8f53b,#3bdfdd)">👩‍💻</div><div><div class="team-name">Aisha Petrov</div><div class="team-role">Senior Editor · Civic AI</div></div></div>
+    <div class="team-item"><div class="team-av" style="background:linear-gradient(135deg,#3bdfdd,#6c63ff)">👨‍🏙️</div><div><div class="team-name">Marco Fuentes</div><div class="team-role">Infrastructure Correspondent</div></div></div>
+    <div class="team-item"><div class="team-av" style="background:linear-gradient(135deg,#c8f53b,#ff9b50)">👩‍⚕️</div><div><div class="team-name">Dr. Lin Okafor</div><div class="team-role">Emergency Systems Researcher</div></div></div>
+    <div class="team-item"><div class="team-av" style="background:linear-gradient(135deg,#ff9b50,#3bdfdd)">🧑‍🚌</div><div><div class="team-name">Yuki Andersen</div><div class="team-role">Mobility & Transit Writer</div></div></div>
+    <div class="team-item"><div class="team-av" style="background:linear-gradient(135deg,#6c63ff,#c8f53b)">👨‍⚖️</div><div><div class="team-name">Ravi Sørensen</div><div class="team-role">Policy & Privacy Analyst</div></div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ NEWSLETTER ══════════════════════ -->
+<section id="newsletter">
+  <div class="nl-box">
+    <div class="nl-glow"></div>
+    <div class="nl-kicker reveal">Stay in the Loop</div>
+    <h2 class="nl-title reveal">Intelligence, Delivered.</h2>
+    <p class="nl-sub reveal">Weekly dispatches on conversational AI, smart cities, and the technology reshaping how we live in urban space. No spam. Unsubscribe anytime.</p>
+    <div class="nl-form reveal">
+      <input class="nl-input" type="email" placeholder="your@email.com"/>
+      <button class="nl-btn" id="nlBtn">Subscribe</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">UrbanMind</div>
+  <div class="foot-links">
+    <span onclick="scrollSec('about')">About</span>
+    <span onclick="scrollSec('articles')">Articles</span>
+    <span onclick="scrollSec('newsletter')">Newsletter</span>
+    <span onclick="scrollSec('topics')">Topics</span>
+  </div>
+  <div>© 2025 UrbanMind · All articles on one page</div>
+</footer>
+
+<script>
+/* LOADER */
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('loader').classList.add('gone'), 1800);
+});
+
+/* CURSOR */
+const dot = document.getElementById('cursor-dot');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function animC(){
+  dot.style.left=mx+'px'; dot.style.top=my+'px';
+  rx+=(mx-rx)*.15; ry+=(my-ry)*.15;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animC);
+})();
+document.querySelectorAll('a,button,.card,.topic-card,.article-header,.nav-sub-btn').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* SCROLL HELPER */
+function scrollSec(id){
+  const el=document.getElementById(id);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* NAV SCROLL */
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>60));
+
+/* REVEAL */
+const revEls=document.querySelectorAll('.reveal');
+const rio=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('vis'); });
+},{threshold:.1});
+revEls.forEach(el=>rio.observe(el));
+
+/* COUNT-UP */
+const countEls=document.querySelectorAll('.count');
+const cio=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const el=e.target;
+    const target=parseFloat(el.dataset.t);
+    const decimals=el.dataset.f?parseInt(el.dataset.f):0;
+    const dur=1600; let start=null;
+    function step(ts){
+      if(!start) start=ts;
+      const p=Math.min((ts-start)/dur,1);
+      const eased=1-Math.pow(1-p,3);
+      el.textContent=(target*eased).toFixed(decimals);
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+    cio.unobserve(el);
+  });
+},{threshold:.5});
+countEls.forEach(el=>cio.observe(el));
+
+/* ARTICLE TOGGLE */
+function toggleArt(header){
+  const item=header.closest('.article-item');
+  const body=item.querySelector('.article-body');
+  const isOpen=item.classList.contains('open');
+  // close all
+  document.querySelectorAll('.article-item.open').forEach(i=>{
+    i.classList.remove('open');
+    i.querySelector('.article-body').classList.remove('open');
+  });
+  if(!isOpen){
+    item.classList.add('open');
+    body.classList.add('open');
+    setTimeout(()=>item.scrollIntoView({behavior:'smooth',block:'start'}),50);
+  }
+}
+
+/* CHAT LOOP */
+const chatLoop=[
+  {role:'bot', text:'Good morning! Traffic on Hwy 7 is moderate. Air quality: 42 (Good). How can I help?'},
+  {role:'user',text:'Report a broken streetlight at 5th & Oak.'},
+  {role:'bot', text:'Ticket #SL-9024 created. Maintenance tomorrow 8–10 AM.'},
+  {role:'user',text:'What time does the Green Line start?'},
+  {role:'bot', text:'Green Line begins 5:12 AM from Central Station.'},
+  {role:'user',text:'Is the recycling centre open Saturday?'},
+  {role:'bot', text:'Yes — 8 AM to 4 PM. Bring ID for bulk items.'},
+];
+let chatIdx=0;
+const chatCont=document.getElementById('chatMessages');
+const typingEl=document.getElementById('typingInd');
+function addMsg(){
+  chatIdx=(chatIdx+1)%chatLoop.length;
+  const m=chatLoop[chatIdx];
+  if(m.role==='bot'){
+    typingEl.style.opacity='1';
+    setTimeout(()=>{ typingEl.style.opacity='0'; insertMsg(m); },1400);
+  } else { insertMsg(m); }
+}
+function insertMsg(m){
+  const msgs=chatCont.querySelectorAll('.msg:not(.typing)');
+  if(msgs.length>=4) msgs[0].remove();
+  const d=document.createElement('div');
+  d.className='msg '+m.role;
+  d.style.cssText='opacity:0;transform:translateY(10px);transition:opacity .4s,transform .4s';
+  d.textContent=m.text;
+  chatCont.insertBefore(d,typingEl);
+  requestAnimationFrame(()=>{ d.style.opacity='1'; d.style.transform='translateY(0)'; });
+}
+setInterval(addMsg,3200);
+
+/* NEWSLETTER */
+document.getElementById('nlBtn').addEventListener('click',function(){
+  const inp=document.querySelector('.nl-input');
+  if(inp.value.includes('@')){
+    this.textContent='✓ Subscribed!';
+    this.style.background='#3bdfdd';
+    this.style.color='#0a0d12';
+    inp.value='';
+    setTimeout(()=>{ this.textContent='Subscribe'; this.style.background=''; this.style.color=''; },3000);
+  } else {
+    inp.style.outline='2px solid #ff6b6b';
+    setTimeout(()=>inp.style.outline='',1500);
+  }
+});
+</script>
+</body>
+</html>
