@@ -42,26 +42,8 @@
 The editorial focus is the emerging intersection of **Conversational AI** and **Smart City infrastructure** — covering civic chatbots, digital twins, emergency dispatch AI, multilingual kiosks, IoT-NLP bridges, and urban energy intelligence.
 
 ```
-urbanmind-blog.html   ← entire site: ~1 file, ~900 lines
+urban_min.html   ← entire site: ~1 file, ~900 lines
 ```
-
----
-
-## 🚀 Live Demo
-
-To run locally, simply open the file in any modern browser:
-
-```bash
-# Clone or download the file, then:
-open urbanmind-blog.html
-
-# Or serve it locally:
-npx serve .
-# → http://localhost:3000
-```
-
-No build step. No `npm install`. No environment variables. Just open and go.
-
 ---
 
 ## ✨ Features
@@ -193,66 +175,6 @@ Hero elements stagger in:
   0.5s  Chat demo slides in from right
 ```
 
-### Scroll-Triggered Reveals
-
-Elements with `.reveal` class animate when they enter the viewport:
-
-```css
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity .8s cubic-bezier(.16,1,.3,1),
-              transform .8s cubic-bezier(.16,1,.3,1);
-}
-.reveal.vis {
-  opacity: 1;
-  transform: translateY(0);
-}
-```
-
-Staggered delays via `.d1`, `.d2`, `.d3`, `.d4` classes (0.1s increments).
-
-### Custom Cursor System
-
-```javascript
-// Dot snaps instantly to mouse position
-dot.style.left = mx + 'px';
-
-// Ring lags behind with lerp smoothing (15% per frame)
-rx += (mx - rx) * .15;
-ring.style.left = rx + 'px';
-```
-
-Ring expands on hover over interactive elements via `body.hov` class toggle.
-
-### Count-Up Counters
-
-Triggered by `IntersectionObserver` when stats section enters view. Uses cubic ease-out easing:
-
-```javascript
-const eased = 1 - Math.pow(1 - progress, 3);
-el.textContent = (target * eased).toFixed(decimals);
-```
-
-### Live Chat Demo
-
-Cycles through 6 conversation exchanges with:
-- 3200ms interval between messages
-- Typing indicator (3-dot bounce animation) shown before bot replies
-- Messages fade + slide up on insertion
-- Oldest messages removed when queue exceeds 4
-
-### Article Expand/Collapse
-
-Pure CSS `max-height` transition (no JavaScript height calculation needed):
-
-```css
-.article-body          { max-height: 0;    opacity: 0; transition: max-height .7s, opacity .5s; }
-.article-body.open     { max-height: 3000px; opacity: 1; }
-```
-
-The `+` toggle rotates `45deg` → becomes `×` when open.
-
 ---
 
 ## 🎨 Design System
@@ -317,7 +239,7 @@ All headline sizes use fluid `clamp()` scaling — no media query font overrides
 ## 📁 File Structure
 
 ```
-urbanmind-blog.html
+urban_min.html
 │
 ├── <head>
 │   ├── Google Fonts import (Syne, DM Serif Display, Space Mono)
@@ -373,125 +295,6 @@ urbanmind-blog.html
 ```
 
 ---
-
-## 🚀 Getting Started
-
-### Option 1 — Open Directly
-
-```bash
-# Download the file
-curl -O https://your-repo-url/urbanmind-blog.html
-
-# Open in browser
-open urbanmind-blog.html          # macOS
-start urbanmind-blog.html         # Windows
-xdg-open urbanmind-blog.html      # Linux
-```
-
-### Option 2 — Local Server (recommended for full font loading)
-
-```bash
-# Using Python
-python3 -m http.server 8080
-# → http://localhost:8080/urbanmind-blog.html
-
-# Using Node.js
-npx serve .
-# → http://localhost:3000
-
-# Using PHP
-php -S localhost:8080
-# → http://localhost:8080/urbanmind-blog.html
-```
-
-### Option 3 — Deploy to GitHub Pages
-
-```bash
-# 1. Create a new repository
-git init
-git add urbanmind-blog.html
-git commit -m "Initial commit: UrbanMind blog"
-
-# 2. Push to GitHub
-git remote add origin https://github.com/yourusername/urbanmind.git
-git push -u origin main
-
-# 3. Enable GitHub Pages
-# → Settings → Pages → Source: main branch → /root
-# → Rename file to index.html for root URL access
-mv urbanmind-blog.html index.html
-git add . && git commit -m "Rename to index.html" && git push
-```
-
-Your site will be live at `https://yourusername.github.io/urbanmind/`
-
-### Option 4 — Deploy to Netlify (drag & drop)
-
-1. Go to [netlify.com/drop](https://app.netlify.com/drop)
-2. Rename `urbanmind-blog.html` → `index.html`
-3. Drag the file (or folder) onto the Netlify drop zone
-4. Live in under 30 seconds at a `*.netlify.app` URL
-
----
-
-## 🔧 Customization Guide
-
-### Changing Colors
-
-Edit the CSS variables in `:root` at the top of the `<style>` block:
-
-```css
-:root {
-  --lime: #c8f53b;   /* Change accent color here */
-  --cyan: #3bdfdd;   /* Change secondary accent here */
-  --ink:  #0a0d12;   /* Change primary dark color here */
-}
-```
-
-### Adding a New Article
-
-1. Add a new entry to `#articles` section following this structure:
-
-```html
-<div class="article-item" id="art-9">
-  <div class="article-header" onclick="toggleArt(this)">
-    <div class="art-num">09</div>
-    <div>
-      <div class="art-title">Your Article Title Here</div>
-      <div class="art-meta">Author Name · Date · X min read</div>
-    </div>
-    <div class="art-right">
-      <div class="art-tag">Topic</div>
-      <div class="art-toggle">+</div>
-    </div>
-  </div>
-  <div class="article-body">
-    <div class="article-inner">
-      <p>Your article body content here...</p>
-      <h3>Subheading</h3>
-      <p>More content...</p>
-      <blockquote><p>"Pull quote here." — Attribution</p></blockquote>
-      <div class="tag-row">
-        <span>Tag1</span><span>Tag2</span>
-      </div>
-    </div>
-  </div>
-</div>
-```
-
-2. Optionally add a card in `#featured` pointing to it:
-
-```html
-<div class="card" onclick="scrollSec('art-9')">
-  <div class="card-tag">Category · Month Year</div>
-  <h3 class="card-title">Your Article Title</h3>
-  <p class="card-excerpt">Short description here.</p>
-  <div class="card-meta">
-    <span>Author Name</span>
-    <div class="card-arrow">↓</div>
-  </div>
-</div>
-```
 
 ### Updating Stats
 
@@ -577,23 +380,6 @@ The nav CTA button remains visible at all breakpoints. The hamburger menu is omi
 - **IntersectionObserver** — used for all scroll effects; no scroll event listeners (performant)
 - **requestAnimationFrame** — cursor animation runs on rAF loop, not `mousemove` setInterval
 - **CSS transitions over JS** — article expand/collapse uses CSS `max-height` transition; no JavaScript layout calculation
-
-### Making It Fully Offline
-
-Replace the Google Fonts `<link>` with locally hosted font files:
-
-```html
-<!-- Remove this: -->
-<link href="https://fonts.googleapis.com/css2?family=Syne..." rel="stylesheet"/>
-
-<!-- Add this to your <style> block: -->
-@font-face {
-  font-family: 'Syne';
-  src: url('./fonts/Syne-Bold.woff2') format('woff2');
-  font-weight: 700;
-}
-/* Repeat for each weight/family */
-```
 
 ---
 
